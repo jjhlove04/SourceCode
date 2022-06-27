@@ -1,43 +1,57 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ObjectPooling<T> where T : MonoBehaviour
+public class ObjectPool : MonoBehaviour
 {
-    private Queue<T> m_queue;
-    private GameObject prefab;
-    private Transform parent;
-
-    public ObjectPooling(GameObject prefab, Transform parent, int count = 5)
+    public static ObjectPool instacne { get; private set; }
+    private void Awake()
     {
-
-        this.prefab = prefab;
-        this.parent = parent;
-        m_queue = new Queue<T>();
-        for (int i = 0; i < count; i++)
-        {
-            GameObject obj = GameObject.Instantiate(prefab, parent);
-            T t = obj.GetComponent<T>();
-            obj.SetActive(false);
-            m_queue.Enqueue(t);
-        }
+        instacne = this;
     }
 
-    public T GetOrCreate()
-    {
-        T t = m_queue.Peek();
-        if (t.gameObject.activeSelf)
-        {
-            GameObject temp = GameObject.Instantiate(prefab, parent);
-            t = temp.GetComponent<T>();
+    private Dictionary<string, Queue<GameObject>> objectPool = new Dictionary<string, Queue<GameObject>>();
 
+    public GameObject GetObject(GameObject gameObject)
+    {
+        if(objectPool.TryGetValue(gameObject.name, out Queue<GameObject> objectList))
+        {
+            if(objectList.Count == 0)
+            {
+                return CreateNewObject(gameObject);
+            }
+            else
+            {
+                GameObject obj = objectList.Dequeue();
+                obj.SetActive(true);
+                return obj;
+            }
         }
         else
         {
-            t = m_queue.Dequeue();
-            t.gameObject.SetActive(true);
-            m_queue.Enqueue(t);
+            return CreateNewObject(gameObject);
         }
-        return t;
+    }
+
+    private GameObject CreateNewObject(GameObject gameObject)
+    {
+        GameObject newObject = Instantiate(gameObject);
+        newObject.name = gameObject.name;
+        return newObject;
+    }
+
+    public void ReturnGameObject(GameObject gameObject)
+    {
+        if(objectPool.TryGetValue(gameObject.name, out Queue<GameObject> objectList))
+        {
+            objectList.Enqueue(gameObject);
+        }
+        else
+        {
+            Queue<GameObject> newObjQueue = new Queue<GameObject>();
+            newObjQueue.Enqueue(gameObject);
+            objectPool.Add(gameObject.name, newObjQueue);
+        }
+
+        gameObject.SetActive(false);
     }
 }
