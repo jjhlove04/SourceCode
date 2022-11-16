@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class PerUtils
+public static class Percent
 {
     public static bool ReturnPercent(float percent)
     {
